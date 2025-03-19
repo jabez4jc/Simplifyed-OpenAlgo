@@ -223,3 +223,17 @@ def delete_symbol_mapping(mapping_id):
         logger.error(f"Error deleting symbol mapping {mapping_id}: {str(e)}")
         db_session.rollback()
         return False
+
+def update_existing_strategies():
+    """Update existing strategies with default trading mode if not set"""
+    try:
+        strategies = Strategy.query.filter_by(trading_mode=None).all()
+        for strategy in strategies:
+            strategy.trading_mode = 'LONG'
+        db_session.commit()
+        logger.info(f"Updated {len(strategies)} strategies with default trading mode")
+        return True
+    except Exception as e:
+        logger.error(f"Error updating existing strategies: {str(e)}")
+        db_session.rollback()
+        return False

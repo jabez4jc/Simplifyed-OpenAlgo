@@ -4,7 +4,7 @@ from database.strategy_db import (
     create_strategy, add_symbol_mapping, get_strategy_by_webhook_id,
     get_symbol_mappings, get_all_strategies, delete_strategy,
     update_strategy_times, delete_symbol_mapping, bulk_add_symbol_mappings,
-    toggle_strategy, get_strategy, get_user_strategies
+    toggle_strategy, get_strategy, get_user_strategies, update_existing_strategies
 )
 from database.symbol import enhanced_search_symbols
 from database.auth_db import get_api_key_for_tradingview
@@ -71,6 +71,9 @@ order_processor_lock = threading.Lock()
 
 # Rate limiting state for regular orders
 last_regular_orders = deque(maxlen=10)  # Track last 10 regular order timestamps
+
+# Update existing strategies on blueprint initialization
+update_existing_strategies()
 
 def process_orders():
     """Background task to process orders from both queues with rate limiting"""
@@ -279,11 +282,15 @@ def index():
     try:
         logger.info(f"Fetching strategies for user: {user_id}")
         strategies = get_user_strategies(user_id)
+        # Ensure all strategies have a trading mode
+        for strategy in strategies:
+            if not strategy.trading_mode:
+                strategy.trading_mode = 'LONG'
         return render_template('strategy/index.html', strategies=strategies)
     except Exception as e:
         logger.error(f"Error in index route: {str(e)}")
         flash('Error loading strategies', 'error')
-        return redirect(url_for('dashboard_bp.index'))
+        return redirect(url_for('dashboard.index'))
 
 @strategy_bp.route('/new', methods=['GET', 'POST'])
 @check_session_validity

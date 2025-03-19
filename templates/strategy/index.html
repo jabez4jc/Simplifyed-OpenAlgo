@@ -24,7 +24,7 @@
                                 {{ 'Active' if strategy.is_active else 'Inactive' }}
                             </div>
                             <div class="badge {% if strategy.trading_mode == 'LONG' %}badge-primary{% elif strategy.trading_mode == 'SHORT' %}badge-warning{% else %}badge-secondary{% endif %}">
-                                {{ strategy.trading_mode }}
+                                {{ strategy.trading_mode or 'LONG' }}
                             </div>
                         </div>
                     </h2>

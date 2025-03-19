@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .stat-card {
+        @apply bg-base-100 rounded-lg shadow-lg p-6 transition-all duration-300;
+    }
+    
+    .stat-card:hover {
+        @apply shadow-xl transform -translate-y-1;
+    }
+
+    .table-container {
+        @apply overflow-x-auto bg-base-100 rounded-lg shadow-lg;
+    }
+
+    .table-header {
+        @apply sticky top-0 bg-base-200 z-10;
+    }
+
+    .numeric-cell {
+        @apply font-mono text-right;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Watchlist - Symbol Mappings{% endblock %}
+
+{% block content %}
+<div class="w-full">
+    <!-- Header Section -->
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold">Strategy Symbol Mappings</h1>
+            <p class="text-base-content/60">View and manage your strategy symbols</p>
+        </div>
+    </div>
+
+    <!-- Symbols Table -->
+    <div id="symbols-table-container" class="table-container">
+        <table class="table w-full">
+            <thead class="table-header">
+                <tr>
+                    <th class="cursor-pointer hover:bg-base-300">
+                        Symbol
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                    </th>
+                    <th class="cursor-pointer hover:bg-base-300">
+                        Exchange
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                    </th>
+                    <th class="cursor-pointer hover:bg-base-300">Quantity</th>
+                    <th class="cursor-pointer hover:bg-base-300">Product</th>
+                    <th class="cursor-pointer hover:bg-base-300">Strategy</th>
+                    <th class="cursor-pointer hover:bg-base-300">Status</th>
+                    <th class="cursor-pointer hover:bg-base-300">Mode</th>
+                    <th>Trade Hours</th>
+                    <th>Square Off</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in strategy_symbols %}
+                <tr class="hover:bg-base-200">
+                    <td class="font-medium">{{ item.symbol }}</td>
+                    <td>
+                        {% set exchange_colors = {
+                            'NSE': 'badge-accent',
+                            'BSE': 'badge-neutral',
+                            'NFO': 'badge-secondary',
+                            'MCX': 'badge-primary'
+                        } %}
+                        <div class="badge {{ exchange_colors.get(item.exchange, 'badge-ghost') }}">
+                            {{ item.exchange }}
+                        </div>
+                    </td>
+                    <td class="numeric-cell">{{ item.quantity }}</td>
+                    <td>
+                        {% set product_type_colors = {
+                            'CNC': 'badge-secondary',
+                            'MIS': 'badge-accent',
+                            'NRML': 'badge-neutral'
+                        } %}
+                        <div class="badge {{ product_type_colors.get(item.product_type, 'badge-ghost') }}">
+                            {{ item.product_type }}
+                        </div>
+                    </td>
+                    <td>
+                        {{ item.strategy_name }}
+                        <div class="badge badge-sm badge-outline">{{ item.platform }}</div>
+                    </td>
+                    <td>
+                        {% if item.is_active %}
+                        <div class="badge badge-success">Active</div>
+                        {% else %}
+                        <div class="badge badge-error">Inactive</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="badge badge-info">{{ item.trading_mode }}</div>
+                    </td>
+                    <td>
+                        {% if item.start_time and item.end_time %}
+                        {{ item.start_time }} - {{ item.end_time }}
+                        {% else %}
+                        <span class="text-gray-400">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.squareoff_time %}
+                        {{ item.squareoff_time }}
+                        {% else %}
+                        <span class="text-gray-400">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="dropdown dropdown-left">
+                            <label tabindex="0" class="btn btn-xs">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </label>
+                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <li>
+                                    {% if item.platform == 'tradingview' %}
+                                    <a href="{{ url_for('strategy_bp.view_strategy', strategy_id=item.strategy_id) }}">
+                                        <i class="fas fa-eye"></i> View Strategy
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('chartink_bp.view_strategy', strategy_id=item.strategy_id) }}">
+                                        <i class="fas fa-eye"></i> View Strategy
+                                    </a>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- No Results Message -->
+    <div id="noResults" class="py-8 text-center hidden">
+        <p class="text-lg text-gray-500">No symbols found matching your filters.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add sorting functionality to table headers
+    document.querySelectorAll('th.cursor-pointer').forEach(headerCell => {
+        headerCell.addEventListener('click', () => {
+            const table = headerCell.closest('table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const index = Array.from(headerCell.parentElement.children).indexOf(headerCell);
+            
+            // Get current sort direction
+            const currentDirection = headerCell.getAttribute('data-sort') || 'asc';
+            const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+            
+            // Update sort direction
+            headerCell.setAttribute('data-sort', newDirection);
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                const aValue = a.children[index].textContent.trim();
+                const bValue = b.children[index].textContent.trim();
+                
+                // Check if values are numbers
+                const aNum = parseFloat(aValue);
+                const bNum = parseFloat(bValue);
+                
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return newDirection === 'asc' ? aNum - bNum : bNum - aNum;
+                }
+                
+                return newDirection === 'asc' 
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            });
+            
+            // Clear and repopulate tbody
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        });
+    });
+});
+</script>
+{% endblock %} 

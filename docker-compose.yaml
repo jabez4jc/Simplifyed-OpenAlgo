@@ -8,10 +8,13 @@ services:
     volumes:
       - .:/app
       - ./db:/app/db
+      - ./tmp:/app/tmp
     env_file:
       - .env
     environment:
       - FLASK_DEBUG=True
       - FLASK_ENV=development
       - DATABASE_URL=sqlite:///db/openalgo.db
+      - TRAFFIC_DATABASE_URL=sqlite:///db/traffic.db
+      - LATENCY_DATABASE_URL=sqlite:///db/latency.db
     restart: unless-stopped
